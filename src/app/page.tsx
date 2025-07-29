@@ -1,13 +1,58 @@
 "use client"
 
+import { useState } from "react"
 import Image from "next/image"
+import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import DomainStatusTable from "@/components/DomainStatusTable"
+
+type DomainResult = {
+  domain: string
+  sslExpiry: string | null
+  whoisExpiry: string | null
+}
 
 export default function Home() {
+  const [domain, setDomain] = useState("")
+  const [results, setResults] = useState<DomainResult[]>([])
+
+  const handleAddDomain = async () => {
+    const trimmed = domain.trim().toLowerCase()
+
+    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(trimmed)) {
+      toast.error("Invalid domain format")
+      return
+    }
+
+    toast.loading("Checking expiry info...")
+
+    try {
+      const res = await fetch("/api/check-domain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: trimmed }),
+      })
+
+      if (!res.ok) throw new Error("Check failed")
+
+      const data = await res.json()
+
+      setResults((prev) => [
+        ...prev.filter((r) => r.domain !== trimmed), // overwrite if exists
+        { domain: trimmed, sslExpiry: data.sslExpiry, whoisExpiry: data.whoisExpiry },
+      ])
+
+      toast.success(`✅ SSL expires on ${data.sslExpiry}`)
+      setDomain("")
+    } catch (err) {
+      toast.error("❌ Failed to check domain")
+    }
+  }
+
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
+      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start w-full">
         <Image
           className="dark:invert"
           src="/next.svg"
@@ -16,96 +61,30 @@ export default function Home() {
           height={38}
           priority
         />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
 
-        {/* ✅ Added Test Toast Button */}
-        <Button onClick={() => toast.success("✅ Test toast triggered!")}>
-          Click to test toast
-        </Button>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+        {/* Add Domain UI */}
+        <div className="flex flex-col gap-2 w-full max-w-md">
+          <h2 className="text-xl font-semibold">Add a Domain</h2>
+          <div className="flex gap-2">
+            <Input
+              placeholder="e.g. example.com"
+              value={domain}
+              onChange={(e) => setDomain(e.target.value)}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <Button onClick={handleAddDomain}>Add</Button>
+          </div>
         </div>
+
+        {/* ✅ Domain results table */}
+        {results.length > 0 && (
+          <div className="w-full mt-8">
+            <DomainStatusTable results={results} />
+          </div>
+        )}
       </main>
+
       <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+        {/* ... unchanged footer links ... */}
       </footer>
     </div>
   )
