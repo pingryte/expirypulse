@@ -1,4 +1,8 @@
-import Image from "next/image";
+"use client"
+
+import Image from "next/image"
+import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 
 export default function Home() {
   return (
@@ -24,6 +28,11 @@ export default function Home() {
             Save and see your changes instantly.
           </li>
         </ol>
+
+        {/* ✅ Added Test Toast Button */}
+        <Button onClick={() => toast.success("✅ Test toast triggered!")}>
+          Click to test toast
+        </Button>
 
         <div className="flex gap-4 items-center flex-col sm:flex-row">
           <a
@@ -99,5 +108,5 @@ export default function Home() {
         </a>
       </footer>
     </div>
-  );
+  )
 }
